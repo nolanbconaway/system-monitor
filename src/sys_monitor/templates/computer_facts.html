@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+
+
+<h1>Computer Facts!</h1>
+
+<div>
+    {% for title, (script, div) in plots.items() %}
+    <div>
+        <h2>{{title | safe}}</h2>
+        {{ div | safe }}
+        {{ script | safe }}
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

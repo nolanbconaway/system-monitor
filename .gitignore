@@ -1,0 +1,5 @@
+*egg-info
+.python-version
+.env
+TODO
+*.pyc
