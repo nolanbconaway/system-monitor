@@ -71,7 +71,9 @@ def plot_temps(data: list) -> plotting.Figure:
     """Return the bokeh of temperature data."""
     plot = make_timeseries_plot()
     plot.yaxis.formatter = models.PrintfTickFormatter(format="%d°f")
-    return make_fact_lines(plot, data)
+    plot = make_fact_lines(plot, data)
+    plot.legend.location = "top_left"  # because the legend requires glyphs
+    return plot
 
 
 def plot_percents(data: list) -> plotting.Figure:
@@ -79,7 +81,9 @@ def plot_percents(data: list) -> plotting.Figure:
     plot = make_timeseries_plot()
     plot.yaxis.formatter = models.NumeralTickFormatter(format="0%")
     plot.y_range = models.Range1d(0, 1)
-    return make_fact_lines(plot, data)
+    plot = make_fact_lines(plot, data)
+    plot.legend.location = "top_left"  # because the legend requires glyphs
+    return plot
 
 
 @bp.route("/")
