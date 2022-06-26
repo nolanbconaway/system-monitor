@@ -10,11 +10,12 @@ from psycopg2 import connect, sql
 bp = Blueprint("computer_facts", __name__)
 
 COLORMAP = palettes.Dark2
+TZ = "America/New_York"
 
 SQL_TEMPLATE = sql.SQL(
     """
     select 
-        date_trunc('minute', ts_utc) as ts,
+        date_trunc('minute', ts_utc) at time zone {tz} as ts,
         fact_name,
         avg(fact_value) as fact_value
 
@@ -35,6 +36,7 @@ def db_query(*facts, lb: str = None) -> list:
     query = SQL_TEMPLATE.format(
         facts=sql.SQL(",").join([sql.Literal(f) for f in facts]),
         utc_lowerbound=sql.Literal(lb),
+        tz=sql.Literal(TZ),
     )
     with connect(os.environ["PSYCOPG_URI"]) as conn:
         with conn.cursor() as curs:
