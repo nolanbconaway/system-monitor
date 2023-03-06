@@ -7,11 +7,12 @@ setuptools.setup(
     package_dir={"": "src"},
     packages=setuptools.find_packages("src"),
     install_requires=[
-        "python-dotenv==0.15.0",
-        "flask==1.1.2",
-        "gevent==21.1.2",
-        "psycopg2-binary==2.8.6",
+        "python-dotenv==0.*",
+        "flask==1.*",
+        "gevent==21.*",
+        "psycopg2-binary==2.*",
         "bokeh==2.3.0",
+        "markupsafe==2.0.1"
     ],
     extras_require=dict(
         dev=[

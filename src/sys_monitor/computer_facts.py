@@ -91,9 +91,11 @@ def plot_percents(data: list) -> plotting.Figure:
 @bp.route("/")
 def render_computer_facts():
     plots = {
-        "Temperatures": plot_temps(db_query("cpu_temp_f", "gpu_temp_f", "rpi_temp_f")),
+        "Temperatures": plot_temps(
+            db_query("temp/acpitz/f", "temp/nvme/f", "temp/coretemp/avg/f")
+        ),
         "Usage Pct": plot_percents(
-            db_query("hd_use_pct", "cpu_use_pct", "memory_use_pct")
+            db_query("usage/hd/pct", "usage/cpu/pct", "usage/memory/pct")
         ),
     }
     return render_template(
