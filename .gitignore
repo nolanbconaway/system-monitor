@@ -3,3 +3,4 @@
 .env
 TODO
 *.pyc
+.vscode/
