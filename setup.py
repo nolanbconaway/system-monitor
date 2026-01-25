@@ -12,6 +12,8 @@ setuptools.setup(
         "gevent==21.1.2",
         "psycopg2-binary==2.8.6",
         "bokeh==2.3.0",
+        "pandas==1.*",
+        "numpy==1.*",
     ],
     extras_require=dict(
         dev=[
