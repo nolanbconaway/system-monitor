@@ -1,13 +1,21 @@
 {% extends "base.html" %}
+
 {% block content %}
 
 
+{% if kind == "thin" %}
+{% else %}
 <h1>Computer Facts!</h1>
+{% endif %}
 
 <div>
     {% for title, (script, div) in plots.items() %}
     <div>
+        {% if kind == "thin" %}
+        <h3>{{title | safe}}</h3>
+        {% else %}
         <h2>{{title | safe}}</h2>
+        {% endif %}
         {{ div | safe }}
         {{ script | safe }}
     </div>
