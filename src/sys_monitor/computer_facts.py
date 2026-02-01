@@ -13,6 +13,7 @@ from psycopg2 import connect, sql
 bp = Blueprint("computer_facts", __name__)
 
 TIMESTEP_MINS = 5  # timeseries aggregation step
+PLOT_TIME_RANGE_HOURS = 24
 COLORMAP = palettes.Dark2
 TZ = "America/New_York"
 
@@ -36,7 +37,10 @@ SQL_TEMPLATE = sql.SQL(
 
 def db_query(*facts, lb: str = None, regularize: bool = True) -> list:
     """Get data out of postgres via the sql template."""
-    lb = lb or (datetime.datetime.utcnow() - datetime.timedelta(days=1))
+    lb = lb or (
+        datetime.datetime.now(datetime.timezone.utc)
+        - datetime.timedelta(hours=PLOT_TIME_RANGE_HOURS)
+    )
     query = SQL_TEMPLATE.format(
         facts=sql.SQL(",").join([sql.Literal(f) for f in facts]),
         utc_lowerbound=sql.Literal(lb),
@@ -83,6 +87,11 @@ def make_timeseries_plot() -> plotting.Figure:
     plot.toolbar_location = None
     plot.xaxis.formatter = models.DatetimeTickFormatter(
         hours=["%a %I%p"], days=["%a %I%p"]
+    )
+    # ensure the x axis goes back PLOT_TIME_RANGE_HOURS hours
+    plot.x_range = models.Range1d(
+        datetime.datetime.now() - datetime.timedelta(hours=PLOT_TIME_RANGE_HOURS),
+        datetime.datetime.now(),
     )
     return plot
 
