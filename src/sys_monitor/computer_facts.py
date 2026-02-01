@@ -13,6 +13,7 @@ from psycopg2 import connect, sql
 bp = Blueprint("computer_facts", __name__)
 
 TIMESTEP_MINS = 5  # timeseries aggregation step
+PLOT_TIME_RANGE_HOURS = 24
 COLORMAP = palettes.Dark2
 TZ = "America/New_York"
 
@@ -36,7 +37,10 @@ SQL_TEMPLATE = sql.SQL(
 
 def db_query(*facts, lb: str = None, regularize: bool = True) -> list:
     """Get data out of postgres via the sql template."""
-    lb = lb or (datetime.datetime.utcnow() - datetime.timedelta(days=1))
+    lb = lb or (
+        datetime.datetime.now(datetime.timezone.utc)
+        - datetime.timedelta(hours=PLOT_TIME_RANGE_HOURS)
+    )
     query = SQL_TEMPLATE.format(
         facts=sql.SQL(",").join([sql.Literal(f) for f in facts]),
         utc_lowerbound=sql.Literal(lb),
@@ -73,9 +77,12 @@ def regularize_timeseries(data: list) -> list:
     return out
 
 
-def make_timeseries_plot() -> plotting.Figure:
+def make_timeseries_plot(kind: str = "full") -> plotting.Figure:
     """Make an empty timeseries plot with all my customizations."""
-    plot = plotting.figure(plot_width=900, plot_height=400, x_axis_type="datetime")
+    if kind == "thin":
+        plot = plotting.figure(plot_width=600, plot_height=300, x_axis_type="datetime")
+    else:
+        plot = plotting.figure(plot_width=900, plot_height=400, x_axis_type="datetime")
     plot.toolbar.active_drag = None
     plot.toolbar.active_scroll = None
     plot.toolbar.active_tap = None
@@ -84,6 +91,12 @@ def make_timeseries_plot() -> plotting.Figure:
     plot.xaxis.formatter = models.DatetimeTickFormatter(
         hours=["%a %I%p"], days=["%a %I%p"]
     )
+    # ensure the x axis goes back PLOT_TIME_RANGE_HOURS hours
+    plot.x_range = models.Range1d(
+        datetime.datetime.now() - datetime.timedelta(hours=PLOT_TIME_RANGE_HOURS),
+        datetime.datetime.now(),
+    )
+
     return plot
 
 
@@ -97,52 +110,75 @@ def make_fact_lines(plot: plotting.Figure, data: list) -> plotting.Figure:
     return plot
 
 
-def plot_temps(data: list) -> plotting.Figure:
+def plot_temps(data: list, kind: str = "full") -> plotting.Figure:
     """Return the bokeh of temperature data."""
-    plot = make_timeseries_plot()
+    plot = make_timeseries_plot(kind=kind)
     plot.yaxis.formatter = models.PrintfTickFormatter(format="%d°f")
     plot = make_fact_lines(plot, data)
-    plot.legend.location = "top_left"  # because the legend requires glyphs
+    if kind == "thin":
+        plot.legend.orientation = "horizontal"
+        plot.legend.location = "top_center"
+    else:
+        plot.legend.location = "top_left"  # because the legend requires glyphs
     return plot
 
 
-def plot_percents(data: list) -> plotting.Figure:
-    """Return the bokeh of temperature data."""
-    plot = make_timeseries_plot()
+def plot_percents(data: list, kind: str = "full") -> plotting.Figure:
+    """Return the bokeh of percentage data."""
+    plot = make_timeseries_plot(kind=kind)
     plot.yaxis.formatter = models.NumeralTickFormatter(format="0%")
     plot.y_range = models.Range1d(0, 1)
     plot = make_fact_lines(plot, data)
-    plot.legend.location = "top_left"  # because the legend requires glyphs
+
+    if kind == "thin":
+        plot.legend.orientation = "horizontal"
+        plot.legend.location = "top_center"
+    else:
+        plot.legend.location = "top_left"
+
     return plot
 
 
-def plot_counts(data: list) -> plotting.Figure:
-    """Return the bokeh of temperature data."""
-    plot = make_timeseries_plot()
+def plot_counts(data: list, kind: str = "full") -> plotting.Figure:
+    """Return the bokeh of count data."""
+    plot = make_timeseries_plot(kind=kind)
     plot = make_fact_lines(plot, data)
-    plot.legend.location = "top_left"  # because the legend requires glyphs
+
+    if kind == "thin":
+        plot.legend.orientation = "horizontal"
+        plot.legend.location = "top_center"
+    else:
+        plot.legend.location = "top_left"
+
     return plot
 
 
-def get_plots():
+def get_plots(kind: str = "full") -> dict:
     """Return all plots as a dict of title: bokeh figure."""
     return {
         "Moomoo Queue Counts": plot_counts(
-            db_query("moomoo_queue_updated", "moomoo_queue_new", "moomoo_queue_old")
+            db_query("moomoo_queue_updated", "moomoo_queue_new", "moomoo_queue_old"),
+            kind=kind,
         ),
-        "Temperatures": plot_temps(db_query("cpu_temp_f", "gpu_temp_f", "rpi_temp_f")),
+        "Temperatures": plot_temps(
+            db_query("cpu_temp_f", "gpu_temp_f", "rpi_temp_f"),
+            kind=kind,
+        ),
         "Usage Pct": plot_percents(
-            db_query("hd_use_pct", "cpu_use_pct", "memory_use_pct")
+            db_query("hd_use_pct", "cpu_use_pct", "memory_use_pct"),
+            kind=kind,
         ),
     }
 
 
 @bp.route("/")
-def render_computer_facts():
-    plots = get_plots()
+@bp.route("/<kind>")
+def render_computer_facts(kind: str = "full"):
+    plots = get_plots(kind=kind)
     return render_template(
         "computer_facts.html",
         plots={k: embed.components(p) for k, p in plots.items()},
+        kind=kind,
     )
 
 
